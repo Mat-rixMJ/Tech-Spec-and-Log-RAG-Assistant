@@ -128,6 +128,7 @@ def test_retention_email_is_grounded_in_policy(monkeypatch):
         captured["prompt"] = prompt
         return "Hi Ava, we'd love to keep you. Here's a 15% loyalty discount."
 
+    monkeypatch.setattr(retention.llm, "is_live", lambda: True)
     monkeypatch.setattr(retention.llm, "generate", fake_generate)
 
     # Upload a policy doc so the email can be grounded.
@@ -167,6 +168,7 @@ def test_retention_email_is_grounded_in_policy(monkeypatch):
 
 
 def test_retention_email_without_doc_still_works(monkeypatch):
+    monkeypatch.setattr(retention.llm, "is_live", lambda: True)
     monkeypatch.setattr(retention.llm, "generate", lambda p: "Hi there, let's chat.")
     customer = {
         "customer_id": "C1",
@@ -182,3 +184,26 @@ def test_retention_email_without_doc_still_works(monkeypatch):
     resp = client.post("/retention-email", json={"customer": customer, "doc_id": None})
     assert resp.status_code == 200
     assert resp.json()["grounded_in"] == []
+
+
+def test_demo_email_is_clean_not_prompt_scaffolding():
+    # In demo mode (no key) the email must read like an email, not echo the
+    # prompt template ("Write the email now...", "CONTEXT:").
+    customer = {
+        "customer_id": "C1",
+        "name": "Kai Shah",
+        "churn_probability": 0.72,
+        "risk_level": "high",
+        "contract_label": "Monthly",
+        "top_factors": [
+            {"feature": "contract type", "direction": "increases risk", "weight": 0.2}
+        ],
+        "features": {},
+    }
+    data = client.post(
+        "/retention-email", json={"customer": customer, "doc_id": None}
+    ).json()
+    assert data["llm_live"] is False
+    assert data["email"].startswith("Hi Kai Shah,")
+    assert "CONTEXT:" not in data["email"]
+    assert "Write the email now" not in data["email"]

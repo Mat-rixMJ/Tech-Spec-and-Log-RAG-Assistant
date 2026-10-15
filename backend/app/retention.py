@@ -72,15 +72,43 @@ def draft_email(customer: dict, doc_id: str | None) -> dict:
         else "(No policy document provided — offer a call, do not promise specifics.)"
     )
 
-    prompt = PROMPT_TEMPLATE.format(
-        name=customer.get("name") or "there",
-        risk=customer["risk_level"],
-        pct=round(customer["churn_probability"] * 100),
-        reasons=reasons,
-        context=context,
-    )
+    name = customer.get("name") or "there"
+
+    if not llm.is_live():
+        # Offline demo: write a clean templated email rather than echoing the
+        # prompt scaffolding, so the UI shows something presentable without a key.
+        email = _demo_email(name, reasons, bool(sources))
+    else:
+        prompt = PROMPT_TEMPLATE.format(
+            name=name,
+            risk=customer["risk_level"],
+            pct=round(customer["churn_probability"] * 100),
+            reasons=reasons,
+            context=context,
+        )
+        email = llm.generate(prompt)
+
     return {
-        "email": llm.generate(prompt),
+        "email": email,
         "grounded_in": sources,
         "llm_live": llm.is_live(),
     }
+
+
+def _demo_email(name: str, reasons: str, has_policy: bool) -> str:
+    """Presentable placeholder email for demo mode (no LLM key)."""
+    offer = (
+        "I'd love to find a plan that works better for you — do you have 15 minutes "
+        "this week for a quick call?"
+        if not has_policy
+        else "Based on your account, you may qualify for options in our loyalty "
+        "program — I'd be glad to walk you through them on a short call."
+    )
+    return (
+        f"Hi {name},\n\n"
+        f"I noticed a few things about your account ({reasons}) and wanted to reach "
+        f"out personally. {offer}\n\n"
+        "Thanks for being with us — I'm here to help.\n\n"
+        "Best regards,\nThe Customer Success Team\n\n"
+        "— (Demo mode: set a GEMINI_API_KEY to generate a tailored, policy-grounded email.)"
+    )
