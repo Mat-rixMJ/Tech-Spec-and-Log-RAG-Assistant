@@ -1,0 +1,21 @@
+# Python
+**/.venv/
+**/__pycache__/
+*.pyc
+**/.pytest_cache/
+
+# Secrets — never commit
+**/.env
+**/.env.*
+!**/.env.example
+
+# ML artifacts (rebuilt by build.sh on deploy)
+backend/models/*.joblib
+
+# Real dataset (downloaded at build time; see backend/data/README.md)
+backend/data/telco_churn.csv
+
+# Node / Vite
+**/node_modules/
+**/dist/
+*.local

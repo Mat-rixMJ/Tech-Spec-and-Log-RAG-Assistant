@@ -1,0 +1,22 @@
+# systemd unit for the CustIQ API (Gunicorn + Uvicorn workers).
+# Monorepo layout: the backend lives in ~/custiq/backend.
+# Copy to /etc/systemd/system/custiq.service and edit User/paths if different.
+[Unit]
+Description=CustIQ API (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/custiq/backend
+EnvironmentFile=/home/ubuntu/custiq/backend/.env
+ExecStart=/home/ubuntu/custiq/backend/.venv/bin/gunicorn app.main:app \
+    --workers 2 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --bind 127.0.0.1:8300 \
+    --timeout 120
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+models/*.joblib
+.pytest_cache/
+# Real churn dataset is optional and not committed (download it per data/README.md).
+data/telco_churn.csv
